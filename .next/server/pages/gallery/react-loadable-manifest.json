@@ -1,0 +1,10 @@
+{
+  "[project]/components/CanvasContainer.js [client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/components/CanvasContainer.js [client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/components_d1dab193._.js",
+      "static/chunks/node_modules_75a15f17._.js",
+      "static/chunks/components_CanvasContainer_f0435ba9.js"
+    ]
+  }
+}

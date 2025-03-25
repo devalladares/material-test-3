@@ -1,0 +1,3 @@
+{
+  "/api/analyze-image": "pages/api/analyze-image.js"
+}
