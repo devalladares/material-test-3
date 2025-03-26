@@ -17,6 +17,83 @@ const REFINEMENT_SUGGESTIONS = [
   // Add more suggestions as needed...
 ];
 
+// Update SURPRISE_REFINEMENTS with more fun, bonkers prompts
+const SURPRISE_REFINEMENTS = [
+  // Open-ended prompts (higher probability)
+  "Do something cool with this. I leave it up to you!",
+  "Surprise me! Take this image somewhere unexpected.",
+  "Transform this however you want. Be creative!",
+  "Do something wild with this image. No limits!",
+  "Make this image magical in your own way.",
+  "Take creative freedom with this image. Surprise me!",
+  "Show me what you can do with this. Go crazy!",
+  "Transform this in a way I wouldn't expect.",
+  "Have fun with this and do whatever inspires you.",
+  "Go wild with this image! Show me something amazing.",
+  "Put your own creative spin on this image.",
+  "Reimagine this image however you want. Be bold!",
+  "Do something unexpected with this. Totally up to you!",
+  "Surprise me with your creativity. Anything goes!",
+  "Make this extraordinary in whatever way you choose.",
+  "Show off your creative abilities with this image!",
+  "Take this in any direction that excites you!",
+  "Transform this however your imagination guides you.",
+  "Make this magical in your own unique way.",
+  "Do something fun and unexpected with this!",
+  "Surprise me! Show me your creativity.",
+  "Make this more beautiful <3",
+  "Put your artistic spin on this image!",
+  "Let your imagination run wild with this!",
+  "Take this image to a whole new level of awesome!",
+  "Make this image extraordinary in your own way.",
+  "Do something fantastic with this. Full creative freedom!",
+  "Surprise me with a totally unexpected transformation!",
+  "Go nuts with this! Show me something incredible!",
+  "Add your own wild twist to this image!",
+  "Make this image come alive however you want!",
+  "Transform this in the most creative way possible!",
+  "Go crazy with this. I want to be wowed :))",
+  "Do whatever magical things you want with this image!",
+  "Reinvent this image however inspires you!",
+  
+  // Specific wild ideas (lower probability)
+  "Can you add this to outer space with aliens having a BBQ?",
+  "Can you add a giraffe wearing a tuxedo to this?",
+  "Can you make tiny vikings invade this image?",
+  "Can you turn this into an ice cream sundae being eaten by robots?",
+  "Can you make this float in a sea of rainbow soup?",
+  "Can you add dancing pickles to this image?",
+  "Can you make this the centerpiece of an alien museum?",
+  "Can you add this to a cereal bowl being eaten by a giant?",
+  "Can you make this the star of a bizarre music video?",
+  "Can you add tiny dinosaurs having a tea party?",
+  "Can you turn this into something from a fever dream?",
+  "Can you make this the main character in a surreal fairytale?",
+  "Can you put this in the middle of a candy landscape?",
+  "Can you add this to a world where physics works backwards?",
+  "Can you make this the prize in a cosmic game show?",
+  "Can you add tiny people worshipping this as a deity?",
+  "Can you put this in the paws of a giant cosmic cat?",
+  "Can you make this wearing sunglasses and surfing?",
+  "Can you add this to a world made entirely of cheese?",
+  "Can you make this the centerpiece of a goblin birthday party?",
+  "Can you transform this into a cloud creature floating in the sky?",
+  "Can you add this to a world where everything is made of pasta?",
+  "Can you turn this into a piñata at a monster celebration?",
+  "Can you add this to outer space?",
+  "Can you add this to a landscape made of breakfast foods?",
+  "Can you make this the conductor of an orchestra of unusual animals?",
+  "Can you turn this into a strange plant growing in an alien garden?",
+  "Can you add this to a world inside a snow globe?",
+  "Can you make this the secret ingredient in a witch's cauldron?",
+  "Can you turn this into a superhero with an unusual power?",
+  "Can you make this swimming in a sea of jelly beans?",
+  "Can you add this to a planet where everything is upside down?",
+  "Can you make this the treasure in a dragon's unusual collection?",
+  "Can you transform this into a character in a bizarre cartoon?",
+  "Can you add this to a world where shadows come to life?"
+];
+
 const DisplayCanvas = ({ 
   displayCanvasRef, 
   isLoading,
@@ -54,6 +131,15 @@ const DisplayCanvas = ({
     document.querySelector('input[name="refiner"]').focus();
   };
 
+  const handleSurpriseMe = () => {
+    // Get a random surprise prompt
+    const randomPrompt = SURPRISE_REFINEMENTS[Math.floor(Math.random() * SURPRISE_REFINEMENTS.length)];
+    // Set it directly as the input value
+    setInputValue(randomPrompt);
+    // Focus the input
+    document.querySelector('input[name="refiner"]').focus();
+  };
+
   return (
     <div className="flex flex-col">
       {/* Canvas container with fixed aspect ratio */}
@@ -82,22 +168,14 @@ const DisplayCanvas = ({
             <p className="text-gray-400 text-lg font-medium">Generation will appear here</p>
           </div>
         )}
-
-        {/* Floating action bar - now properly contained within the canvas container */}
-        <div className="absolute bottom-4 right-4 z-10">
-          <ActionBar
-            handleSaveImage={handleSaveImage}
-            handleRegenerate={handleRegenerate}
-            onOpenHistory={onOpenHistory}
-          />
-        </div>
       </div>
 
-      {/* Refiner input - moved outside the canvas container */}
-      {hasGeneratedContent && (
-        <div className="mt-4 space-y-2">
-          <form onSubmit={handleSubmit} className="flex">
-            <div className="flex-1 flex items-center bg-white rounded-xl shadow-soft p-2 border border-gray-200">
+      {/* Action bar and refiner section */}
+      <div className="mt-4 flex items-center justify-between gap-2 max-w-full">
+        {/* Refiner input - only shown when there's generated content */}
+        {hasGeneratedContent ? (
+          <form onSubmit={handleSubmit} className="flex-1 min-w-0">
+            <div className="flex items-center bg-white rounded-xl shadow-soft p-2 border border-gray-200">
               <input
                 name="refiner"
                 type="text"
@@ -117,21 +195,44 @@ const DisplayCanvas = ({
               </button>
             </div>
           </form>
+        ) : (
+          <div className="flex-1"></div> 
+        )}
+        
+        {/* Action bar - always visible */}
+        <ActionBar
+          handleSaveImage={handleSaveImage}
+          handleRegenerate={handleRegenerate}
+          onOpenHistory={onOpenHistory}
+          hasGeneratedContent={hasGeneratedContent}
+        />
+      </div>
 
-          {/* Refined suggestion chips */}
-          <div className="flex flex-wrap gap-1.5">
-            {REFINEMENT_SUGGESTIONS.map((suggestion, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => handleSuggestionClick(suggestion)}
-                className="flex items-center gap-1.5 px-2 py-0.5 text-xs bg-white hover:bg-gray-50 rounded-full border border-gray-200 text-gray-400 opacity-60 hover:text-gray-600 hover:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
-              >
-                <suggestion.icon className="w-3.5 h-3.5" />
-                <span>{suggestion.label}</span>
-              </button>
-            ))}
-          </div>
+      {/* Refined suggestion chips */}
+      {hasGeneratedContent && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {/* Surprise Me button with same styling as other buttons */}
+          <button
+            type="button"
+            onClick={handleSurpriseMe}
+            className="flex items-center gap-2 px-3 py-1 text-sm bg-white hover:bg-gray-50 rounded-full border border-gray-200 text-gray-400 opacity-60 hover:text-gray-600 hover:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
+          >
+            <Wand2 className="w-4 h-4" />
+            <span>Surprise Me</span>
+          </button>
+
+          {/* Regular suggestion buttons */}
+          {REFINEMENT_SUGGESTIONS.map((suggestion, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => handleSuggestionClick(suggestion)}
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-white hover:bg-gray-50 rounded-full border border-gray-200 text-gray-400 opacity-60 hover:text-gray-600 hover:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              <suggestion.icon className="w-4 h-4" />
+              <span>{suggestion.label}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>

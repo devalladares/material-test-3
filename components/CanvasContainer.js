@@ -231,13 +231,18 @@ const CanvasContainer = () => {
   const handleGeneration = useCallback(async () => {
     console.log('handleGeneration called');
     
-    const now = Date.now();
-    if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
-      console.log("Request throttled - too soon after last request");
-      return;
+    // Remove the time throttling for automatic generation after doodle conversion
+    // but keep it for manual generations
+    const isAutoGeneration = !lastRequestTime;
+    if (!isAutoGeneration) {
+      const now = Date.now();
+      if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
+        console.log("Request throttled - too soon after last request");
+        return;
+      }
+      setLastRequestTime(now);
     }
     
-    setLastRequestTime(now);
     if (!canvasRef.current) return;
     
     console.log('Starting generation process');
@@ -369,13 +374,7 @@ const CanvasContainer = () => {
       setIsLoading(false);
       console.log('Generation process completed');
     }
-  }, [
-    lastRequestTime, 
-    styleMode, 
-    customApiKey,
-    currentDimension,
-    isLoading
-  ]);
+  }, [canvasRef, isLoading, styleMode, customApiKey, lastRequestTime]);
 
   // Close the error modal
   const closeErrorModal = () => {

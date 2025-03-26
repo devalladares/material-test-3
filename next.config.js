@@ -25,6 +25,11 @@ const nextConfig = {
         transform: '@material-ui/icons/{{member}}'
       }
     }
+  },
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb' // Increase the size limit to 10MB
+    }
   }
 };
 

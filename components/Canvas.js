@@ -116,6 +116,14 @@ const Canvas = forwardRef(({
     setHasDrawing(hasNonWhitePixels);
   }, [canvasRef]);
 
+  // Add this near your other useEffects
+  useEffect(() => {
+    // When isDoodleConverting becomes true, also set hasDrawing to true
+    if (isDoodleConverting) {
+      setHasDrawing(true);
+    }
+  }, [isDoodleConverting]);
+
   const handleKeyDown = (e) => {
     // Add keyboard accessibility
     if (e.key === 'Enter' || e.key === ' ') {
@@ -728,97 +736,125 @@ const Canvas = forwardRef(({
     }
   };
 
-  // Add function to handle image upload
-  const handleImageUpload = async (imageDataUrl) => {
-    console.log("handleImageUpload called with image data");
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      console.error("Canvas ref is null");
-      return;
-    }
+  // Update handleFileChange function
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    // Set hasDrawing to true immediately
-    setHasDrawing(true);
+    // Store the current tool
+    const previousTool = currentTool;
+    
+    // Hide the placeholder immediately when upload begins
     if (typeof onDrawingChange === 'function') {
       onDrawingChange(true);
     }
+    
+    // Show loading state
+    setIsDoodleConverting(true);
 
-    // First, let's convert to doodle
-    try {
-      console.log("Setting loading state...");
-      setIsDoodleConverting(true);
-
-      console.log("Making API call to convert to doodle...");
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: "can you convert this into a detailed black and white doodle <3\ndo not add or change this! follow it. just see that a black line was drawing this on a white background :)\nPlease add as much detail as you can. Include texture details, shading elements, and fine features from the original.",
-          drawingData: imageDataUrl.split(",")[1], // Make sure we're only sending the base64 data
-        }),
-      });
-
-      console.log("API response received");
-      const data = await response.json();
-      console.log("Response data:", data);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const imageDataUrl = e.target.result;
       
-      if (data.success && data.imageData) {
-        console.log("Valid image data received, creating image...");
-        // Draw the doodle version to the canvas
-        const img = new Image();
-        img.onload = () => {
-          console.log("Image loaded, drawing to canvas...");
-          const ctx = canvas.getContext('2d');
-          
-          // Clear canvas
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Calculate dimensions
-          const scale = Math.min(
-            canvas.width / img.width,
-            canvas.height / img.height
-          );
-          const x = (canvas.width - img.width * scale) / 2;
-          const y = (canvas.height - img.height * scale) / 2;
-          
-          // Draw doodle
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-          
-          // Set hasDrawing to true since we now have content
-          if (typeof onDrawingChange === 'function') {
-            onDrawingChange(true);
-          }
-          
-          // Save canvas state
-          saveCanvasState();
-          
-          // Automatically trigger 3D generation after a short delay, but only if not already generating
-          console.log("Setting timeout for automatic generation...");
-          setTimeout(() => {
-            console.log("Timeout expired, checking if we can call handleGeneration...");
-            if (typeof handleGeneration === 'function' && !isGenerating) {
-              console.log("Calling handleGeneration and setting isGenerating flag...");
-              setIsGenerating(true);
-              handleGeneration();
-            } else {
-              console.log("Skipping generation because isGenerating is already true or handleGeneration is not available");
-            }
-          }, 1000);
-        };
+      try {
+        // Compress the image before sending
+        const compressedImage = await compressImage(imageDataUrl);
         
-        img.src = `data:image/png;base64,${data.imageData}`;
-      } else {
-        console.error("Invalid response data:", data);
+        const response = await fetch('/api/convert-to-doodle', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageData: compressedImage.split(",")[1],
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.imageData) {
+          const img = new Image();
+          img.onload = () => {
+            const ctx = canvasRef.current.getContext('2d');
+            
+            // Clear canvas
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            
+            // Calculate dimensions
+            const scale = Math.min(
+              canvasRef.current.width / img.width,
+              canvasRef.current.height / img.height
+            );
+            const x = (canvasRef.current.width - img.width * scale) / 2;
+            const y = (canvasRef.current.height - img.height * scale) / 2;
+            
+            // Draw doodle
+            ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+            
+            // Save canvas state
+            saveCanvasState();
+            
+            // Hide loading state
+            setIsDoodleConverting(false);
+
+            // Ensure placeholder is hidden
+            if (typeof onDrawingChange === 'function') {
+              onDrawingChange(true);
+            }
+
+            // Automatically trigger generation
+            handleGeneration();
+          };
+          
+          img.src = `data:image/png;base64,${data.imageData}`;
+        }
+      } catch (error) {
+        console.error('Error processing image:', error);
+        setIsDoodleConverting(false);
+        alert('Error processing image. Please try a different image or a smaller file size.');
+        
+        // Restore previous tool even if there's an error
+        setCurrentTool(previousTool);
       }
-    } catch (error) {
-      console.error('Error converting image to doodle:', error);
-    } finally {
-      console.log("Setting loading state to false");
-      setIsDoodleConverting(false);
-    }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  // Add image compression utility
+  const compressImage = async (dataUrl) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Calculate new dimensions while maintaining aspect ratio
+        const MAX_DIMENSION = 1200;
+        if (width > height && width > MAX_DIMENSION) {
+          height *= MAX_DIMENSION / width;
+          width = MAX_DIMENSION;
+        } else if (height > MAX_DIMENSION) {
+          width *= MAX_DIMENSION / height;
+          height = MAX_DIMENSION;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Compress as JPEG with 0.8 quality
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
   };
 
   const handleGenerate = () => {
@@ -829,66 +865,6 @@ const Canvas = forwardRef(({
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Clear "Draw Here" message right away
-    if (typeof onDrawingChange === 'function') {
-      onDrawingChange(true);
-    }
-    // Also update local state immediately
-    setHasDrawing(true);
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageUrl = event.target.result;
-      const img = new Image();
-      
-      img.onload = () => {
-        // Calculate appropriate dimensions while maintaining aspect ratio
-        const maxWidth = canvasRef.current.width * 0.6; // Max 60% of canvas width
-        const maxHeight = canvasRef.current.height * 0.6; // Max 60% of canvas height
-        
-        const scale = Math.min(
-          maxWidth / img.width,
-          maxHeight / img.height
-        );
-        
-        const width = img.width * scale;
-        const height = img.height * scale;
-        
-        // Position in the center of the canvas
-        const x = (canvasRef.current.width - width) / 2;
-        const y = (canvasRef.current.height - height) / 2;
-        
-        // Add to uploaded images state
-        const newImage = {
-          id: Date.now(),
-          src: imageUrl,
-          x,
-          y,
-          width,
-          height,
-          originalWidth: img.width,
-          originalHeight: img.height
-        };
-        
-        setUploadedImages(prev => [...prev, newImage]);
-        
-        // Render the image to the canvas
-        renderCanvas();
-        
-        // Save canvas state
-        saveCanvasState();
-      };
-      
-      img.src = imageUrl;
-    };
-    
-    reader.readAsDataURL(file);
   };
 
   // Add custom clearCanvas implementation

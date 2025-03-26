@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { RefreshCw, Plus, Upload, Edit, Trash2, RefreshCcw, HelpCircle } from 'lucide-react';
+import { RefreshCw, Plus, Upload, Edit, Trash2, RefreshCcw, HelpCircle, Sparkles } from 'lucide-react';
 
 // Define default style options with display names and prompts
 const defaultStyleOptions = {
@@ -244,6 +244,8 @@ const StyleSelector = ({ styleMode, setStyleMode, handleGenerate }) => {
   };
 
   const handleAddMaterial = () => {
+    resetMaterialForm();
+    setRecentlyAdded(null);
     setShowAddMaterialModal(true);
   };
 
@@ -801,10 +803,10 @@ const StyleSelector = ({ styleMode, setStyleMode, handleGenerate }) => {
             <div className="w-20 border border-dashed border-gray-200 overflow-hidden rounded-xl bg-gray-50 flex flex-col">
               <div className="w-full relative" style={{ aspectRatio: '1/1' }}>
                 <div className="flex items-center justify-center h-full">
-                  <Plus className="w-8 h-8 text-gray-400" />
+                  <Plus className="w-6 h-6 text-gray-400" />
                 </div>
               </div>
-              <div className="px-1 py-1 text-left text-xs font-medium border-t border-gray-200 bg-gray-100 text-gray-600 w-full">
+              <div className="px-1 py-1 text-left text-xs font-medium border-t border-gray-200 bg-white text-gray-600 w-full">
                 <div className="truncate">
                   Add Material
                 </div>
@@ -821,191 +823,175 @@ const StyleSelector = ({ styleMode, setStyleMode, handleGenerate }) => {
           onClick={handleClickOutsideModal}
         >
           <div 
-            className="bg-white p-6 rounded-xl shadow-medium max-w-2xl w-full my-8"
+            className="bg-white p-6 rounded-xl shadow-medium max-w-lg w-full my-8"
             onClick={(e) => e.stopPropagation()}  // Prevent clicks inside from closing the modal
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-black">Add Material</h2>
+            <div className="flex items-center justify-between mb-9">
+              <h2 className="text-xl font-medium text-gray-800" style={{ fontFamily: "'Google Sans Text', sans-serif" }}>Add Material</h2>
             </div>
 
             {/* Material Description and Preview section - reorganized */}
-            <div className="mb-6">
-              {/* Description and thumbnail in the same row */}
-              <div className="flex gap-6 items-start mb-6">
+            <div className="mb-12">
+              {/* Description and Upload section - Manual inputs at top */}
+              <div className="mb-12">
                 {/* Material Description */}
                 <div className="flex-1">
-                  <label className="block text-black text-base mb-2">Describe your material</label>
-                  <input
-                    type="text"
-                    value={newMaterialName}
-                    onChange={(e) => setNewMaterialName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                    placeholder="Eg. Bubbles, glass etc"
-                  />
-                </div>
-
-                {/* Thumbnail Preview - Moved back to top right */}
-                <div>
-                  <div className="relative w-[120px] h-[120px] rounded-lg overflow-hidden border border-gray-200">
-                    {(previewThumbnail || customImagePreview) ? (
-                      <img 
-                        src={useCustomImage ? customImagePreview : previewThumbnail} 
-                        alt="Material preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-50 flex items-center justify-center">
-                        <p className="text-gray-400 text-sm text-center px-4">
-                          {isGeneratingPreview ? 'Generating...' : 'Preview'}
-                        </p>
-                      </div>
-                    )}
-                    {isGeneratingPreview && (
-                      <div className="absolute inset-0 bg-black/5 flex items-center justify-center">
-                        <div className="bg-white/90 rounded-full p-2">
-                          <RefreshCw className="w-5 h-5 animate-spin text-gray-700" />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Add refresh button */}
-                    {(previewThumbnail || customImagePreview) && !isGeneratingPreview && !useCustomImage && (
-                      <button
-                        onClick={() => handleRefreshThumbnail(customPrompt)}
-                        className="absolute top-1 right-1 bg-white/80 rounded-full p-1 hover:bg-white transition-colors"
-                        title="Refresh thumbnail"
-                      >
-                        <RefreshCcw className="w-4 h-4 text-gray-600" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Upload Reference - Shorter, not square */}
-              <div className="w-full">
-                <label className="block text-black text-base mb-2">Or upload a reference image</label>
-                <div 
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ height: "100px" }}  // Shorter height
-                >
-                  <div className="flex flex-row items-center gap-3">
-                    <Upload className="w-8 h-8 text-gray-400" />
-                    <p className="text-gray-500">Upload</p>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleReferenceImageUpload}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Material Name field with generated content */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-black font-medium">
-                  Material Name
-                </label>
-                {!showMaterialNameEdit && (
-                  <button
-                    onClick={() => setShowMaterialNameEdit(true)}
-                    className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                    title="Edit material name"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                {showMaterialNameEdit ? (
-                  <input
-                    type="text"
-                    value={generatedMaterialName}
-                    onChange={(e) => setGeneratedMaterialName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter material name"
-                  />
-                ) : (
-                  <div className="w-full px-3 py-2 bg-gray-50 rounded-lg text-gray-700">
-                    {generatedMaterialName || 'Generating material name...'}
-                  </div>
-                )}
-                {isGeneratingText && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Prompt section */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-black font-medium">
-                  Prompt
-                </label>
-                {!showCustomPrompt && (
-                  <button
-                    onClick={() => setShowCustomPrompt(true)}
-                    className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                    title="Edit prompt"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              
-              <div className="relative">
-                {showCustomPrompt ? (
-                  <>
-                    <textarea
-                      value={customPrompt}
-                      onChange={(e) => setCustomPrompt(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
-                      placeholder="Enter custom prompt"
+                  <label className="block text-black font-medium mb-1">Describe your material</label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={newMaterialName}
+                      onChange={(e) => setNewMaterialName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newMaterialName.trim()) {
+                          e.preventDefault();
+                          handleNewMaterialDescription(newMaterialName);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black pr-10"
+                      placeholder="Eg. Bubbles, glass etc"
                     />
-                    <div className="flex justify-end mt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCustomPrompt(generatedPrompt);
-                          setShowCustomPrompt(false);
-                        }}
-                        className="text-xs text-blue-600 hover:text-blue-800"
-                      >
-                        Reset to Generated
-                      </button>
+                    <div className="absolute right-2">
+                      <Sparkles className="w-5 h-5 text-gray-400" />
                     </div>
-                  </>
-                ) : (
-                  <div className="w-full px-3 py-2 bg-gray-50 rounded-lg text-gray-700 h-32 overflow-y-auto">
-                    {generatedPrompt || 'Generating prompt...'}
                   </div>
-                )}
-                {isGeneratingText && (
-                  <div className="absolute right-3 top-3">
-                    <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />
+                </div>
+
+                {/* Upload reference section - Removed "Upload" text */}
+                <div className="w-full mt-4">
+                  <label className="block text-black font-medium mb-1">Or upload a reference image</label>
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ height: "100px" }}
+                  >
+                    <Upload className="w-6 h-6 text-gray-400" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleReferenceImageUpload}
+                    />
                   </div>
-                )}
+                </div>
+              </div>
+
+              {/* Generated content section */}
+              <div className="mt-12">
+                {/* Material Name, Prompt, and Thumbnail in a consistent layout */}
+                <div className="flex gap-3">
+                  {/* Left column for Material Name and Prompt */}
+                  <div className="flex-1 flex flex-col gap-3">
+                    {/* Material Name field */}
+                    <div className="relative">
+                      {showMaterialNameEdit ? (
+                        <input
+                          type="text"
+                          value={generatedMaterialName}
+                          onChange={(e) => setGeneratedMaterialName(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Material Name"
+                        />
+                      ) : (
+                        <div className="group w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 relative">
+                          {generatedMaterialName || (
+                            <span className="text-gray-400 text-sm">Material Name</span>
+                          )}
+                          {!showMaterialNameEdit && (
+                            <button
+                              onClick={() => setShowMaterialNameEdit(true)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Edit material name"
+                            >
+                              <Edit className="w-4 h-4 text-gray-400" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {isGeneratingText && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Prompt section */}
+                    <div className="relative">
+                      {showCustomPrompt ? (
+                        <textarea
+                          value={customPrompt || generatedPrompt}
+                          onChange={(e) => setCustomPrompt(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-[100px] resize-none overflow-y-auto"
+                          placeholder="Prompt"
+                        />
+                      ) : (
+                        <div className="group w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 h-[100px] overflow-y-auto relative">
+                          {generatedPrompt || (
+                            <span className="text-gray-400 text-sm">Prompt</span>
+                          )}
+                          {!showCustomPrompt && (
+                            <button
+                              onClick={() => setShowCustomPrompt(true)}
+                              className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Edit prompt"
+                            >
+                              <Edit className="w-4 h-4 text-gray-400" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {isGeneratingText && (
+                        <div className="absolute right-3 top-3">
+                          <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Thumbnail Preview */}
+                  <div className="w-32">
+                    <div className="w-32 h-32 bg-gray-50 border border-gray-200 rounded-lg overflow-hidden relative">
+                      {(previewThumbnail || customImagePreview) ? (
+                        <img 
+                          src={useCustomImage ? customImagePreview : previewThumbnail} 
+                          alt="Material preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                          <p className="text-gray-400 text-sm text-center px-4">
+                            {isGeneratingPreview ? 'Generating...' : 'Preview'}
+                          </p>
+                        </div>
+                      )}
+                      {/* Refresh button */}
+                      {(previewThumbnail || customImagePreview) && !isGeneratingPreview && !useCustomImage && (
+                        <button
+                          onClick={() => handleRefreshThumbnail(customPrompt)}
+                          className="absolute top-2 right-2 bg-white/80 rounded-full p-1 hover:bg-white transition-colors"
+                          title="Refresh thumbnail"
+                        >
+                          <RefreshCcw className="w-4 h-4 text-gray-600" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowAddMaterialModal(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateMaterial}
                 disabled={isGeneratingThumbnail || !newMaterialName.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-3 py-2 border border-blue-500 rounded-lg text-blue-500 hover:bg-blue-50 disabled:opacity-50 text-sm font-medium transition-colors"
               >
                 Create Material
               </button>
